@@ -1,0 +1,15 @@
+set(the_description "The UbiTrack VRPN Tracking Component")
+ut_add_component(VRPNTracker DEPS utcore utdataflow )
+
+SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+IF(WIN32 AND DEFINED EXTERNAL_LIBRARIES_DIR)
+	set(VRPN_ROOT "${EXTERNAL_LIBRARIES_DIR}/VRPN")
+ENDIF(WIN32 AND DEFINED EXTERNAL_LIBRARIES_DIR)
+
+FIND_PACKAGE(VRPN)
+IF(VRPN_FOUND)
+	ut_component_include_directories("src/VRPNTracker" ${TINYXML_INCLUDE_DIR} ${LOG4CPP_INCLUDE_DIR} ${BOOSTBINDINGS_INCLUDE_DIR} ${LAPACK_INCLUDE_DIR} ${Boost_INCLUDE_DIR} ${VRPN_INCLUDES} ${QUAT_INCLUDES})
+	ut_glob_component_sources(HEADERS "src/VRPNTracker/*.h" SOURCES "src/VRPNTracker/*.cpp")
+	ut_create_single_component(${VRPN_LIBRARY} ${QUAT_LIBRARY})
+	ut_install_utql_patterns()
+ENDIF(VRPN_FOUND)

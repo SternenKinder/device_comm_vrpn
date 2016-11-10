@@ -1,0 +1,24 @@
+import glob
+import os.path
+import sys
+
+# import variables from other scons files
+Import( '*' )
+env = masterEnv.Clone()
+
+if have_vrpn and have_utdataflow:
+	# take driver name from directory name, replace if you don't like the result
+	driverName = os.path.basename( Dir( '.' ).srcnode().abspath )
+
+	# automatically glob files
+	headers = globSourceFiles( '*.h' )
+	sources = globSourceFiles( '*.cpp' ) 
+		
+	vrpntracker_options = mergeOptions( utdataflow_all_options ,vrpn_options  )
+	env.AppendUnique( **vrpntracker_options )
+	
+	# compile driver
+	setupSingleComponentBuild(env, sources, driverName, 'vrpn')	
+	
+	# also create a visual studio project for the library	
+	createVisualStudioProject(env, sources, driverName, driverName)

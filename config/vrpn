@@ -1,0 +1,23 @@
+# add configuration options
+Import( '*' )
+
+SConscript ( '#/config/libraryConfig.py' )
+Import('standardLibFinder', 'standardLibConfig')
+
+opts.Add( 'VRPN_PATH', 'Path to the vrpn sdk directory' )
+opts.Add( 'VPRN_INCLUDE', 'Path to the vrpn header files' )
+opts.Add( 'VRPN_LIBS', 'Path to the vrpn lib files' )
+
+
+libName = "vrpn"
+
+#[{additional compile settings}, {include files}, {language (C++)},{library to link against (optional)}, {source code (optional)}]	
+compileSettings =  [{} , "vrpn_Tracker.h", "C++"]
+libFinder = standardLibFinder(libName,compileSettings)
+
+configHelper = standardLibConfig(libName, libFinder)
+have_vrpn = configHelper.haveLib()
+vrpn_options = configHelper.getLibraryOptions()
+
+# export results
+Export( [ 'have_vrpn', 'vrpn_options' ] )

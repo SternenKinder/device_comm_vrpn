@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<UTQLPatternTemplates xmlns='http://ar.in.tum.de/ubitrack/utql'
+                      xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+                      xmlns:xi='http://www.w3.org/2001/XInclude'
+                      xmlns:h="http://www.w3.org/1999/xhtml"
+                      xsi:schemaLocation='http://ar.in.tum.de/ubitrack/utql ../../../schema/utql_templates.xsd'>
+    
+    <Pattern name="VRPNTracker" displayName="VRPNTracker (Pose)">
+        <Description><p xmlns="http://www.w3.org/1999/xhtml">Logs 3D positions of a Tracking Target received from a VRPN Server</p></Description>
+        <Output>
+            <Node name="VRPN" displayName="VRPN Tracker">
+                <Description><p xmlns="http://www.w3.org/1999/xhtml">VRPN tracker</p></Description>
+                <Attribute name="hostPort" displayName="host and port" xsi:type="StringAttributeDeclarationType" />
+			
+           </Node>
+            <Node name="Body" displayName="Trackable Body">
+                <Description><p xmlns="http://www.w3.org/1999/xhtml">Trackable Body</p></Description>
+            </Node>
+            <Edge name="VRPNToTarget" displayName="Tracked Transformation" source="VRPN" destination="Body">
+                <Attribute name="type" value="6D" xsi:type="EnumAttributeReferenceType"/>
+                <Attribute name="mode" value="push" xsi:type="EnumAttributeReferenceType"/>
+                <Attribute name="vrpnBodyId" displayName="VRPN body ID" xsi:type="StringAttributeDeclarationType">
+                    <Description><p xmlns="http://www.w3.org/1999/xhtml">Body ID of the Trackable</p></Description>
+                </Attribute>
+            </Edge>
+        </Output>
+        <DataflowConfiguration>
+            <UbitrackLib class="VRPNTracker"/>
+        </DataflowConfiguration>
+    </Pattern>
+
+    <Pattern name="VRPNAnalog" displayName="VRPNAnalog (analog)">
+        <Description><p xmlns="http://www.w3.org/1999/xhtml">Logs 3D positions of a Tracking Target received from a VRPN Server</p></Description>
+        <Output>
+            <Node name="VRPN" displayName="VRPN Tracker">
+                <Description><p xmlns="http://www.w3.org/1999/xhtml">VRPN tracker</p></Description>
+                <Attribute name="hostPort" displayName="host and port" xsi:type="StringAttributeDeclarationType" />
+            
+           </Node>
+            <Node name="Body" displayName="Analog signal">
+                <Description><p xmlns="http://www.w3.org/1999/xhtml">Analog signal</p></Description>
+            </Node>
+            <Edge name="VRPNToTarget" displayName="Tracked Analog signal" source="VRPN" destination="Body">
+                <Attribute name="type" value="Distance" xsi:type="EnumAttributeReferenceType"/>
+                <Attribute name="mode" value="push" xsi:type="EnumAttributeReferenceType"/>
+                <Attribute name="vrpnBodyId" displayName="VRPN body ID" xsi:type="StringAttributeDeclarationType">
+                    <Description><p xmlns="http://www.w3.org/1999/xhtml">Body ID of the Trackable</p></Description>
+                </Attribute>
+                <Attribute name="ChannelId" displayName="VRPN analog channel id" min="0" max="65535" default="0" xsi:type="IntAttributeDeclarationType">
+                    <Description><p xmlns="http://www.w3.org/1999/xhtml">id of channel</p></Description>
+                </Attribute>
+            </Edge>
+        </Output>
+        <DataflowConfiguration>
+            <UbitrackLib class="VRPNAnalog"/>
+        </DataflowConfiguration>
+    </Pattern>
+     <Pattern name="VRPNAnalogList" displayName="VRPNAnalogList (distanceList)">
+        <Description><p xmlns="http://www.w3.org/1999/xhtml">Logs 3D positions of a Tracking Target received from a VRPN Server</p></Description>
+        <Output>
+            <Node name="VRPN" displayName="VRPN Tracker">
+                <Description><p xmlns="http://www.w3.org/1999/xhtml">VRPN tracker</p></Description>
+                <Attribute name="hostPort" displayName="host and port" xsi:type="StringAttributeDeclarationType" />
+            
+           </Node>
+            <Node name="Body" displayName="Analog signal">
+                <Description><p xmlns="http://www.w3.org/1999/xhtml">Analog signal</p></Description>
+            </Node>
+            <Edge name="VRPNToTarget" displayName="Tracked Analog signal" source="VRPN" destination="Body">
+                <Attribute name="type" value="DistanceList" xsi:type="EnumAttributeReferenceType"/>
+                <Attribute name="mode" value="push" xsi:type="EnumAttributeReferenceType"/>
+                <Attribute name="vrpnBodyId" displayName="VRPN body ID" xsi:type="StringAttributeDeclarationType">
+                    <Description><p xmlns="http://www.w3.org/1999/xhtml">Body ID of the Trackable</p></Description>
+                </Attribute>
+            </Edge>
+        </Output>
+        <DataflowConfiguration>
+            <UbitrackLib class="VRPNAnalogList"/>
+        </DataflowConfiguration>
+    </Pattern>
+
+
+    <GlobalNodeAttributeDeclarations>
+        <xi:include href="file:GlobalAttrSpec.xml" xpointer="element(/1/1/1)"/>
+    </GlobalNodeAttributeDeclarations>
+    
+    <GlobalEdgeAttributeDeclarations>
+        <xi:include href="file:GlobalAttrSpec.xml" xpointer="element(/1/2/1)"/>
+        <xi:include href="file:GlobalAttrSpec.xml" xpointer="element(/1/2/2)"/>
+        <xi:include href="file:GlobalAttrSpec.xml" xpointer="element(/1/2/3)"/>
+        <xi:include href="file:GlobalAttrSpec.xml" xpointer="element(/1/2/4)"/>
+        <xi:include href="file:GlobalAttrSpec.xml" xpointer="element(/1/2/5)"/>
+        <xi:include href="file:GlobalAttrSpec.xml" xpointer="element(/1/2/6)"/>
+        <xi:include href="file:GlobalAttrSpec.xml" xpointer="element(/1/2/7)"/>
+        <xi:include href="file:GlobalAttrSpec.xml" xpointer="element(/1/2/8)"/>
+    </GlobalEdgeAttributeDeclarations> 
+
+    <GlobalDataflowAttributeDeclarations>
+        <!-- Unfortunately, the xpointer used in Xinclude is currently restricted to the element scheme and absolute element indices in Xerces (and thus XMLBeans) -->
+        <xi:include href="file:GlobalAttrSpec.xml" xpointer="element(/1/3/1)"/>
+        <xi:include href="file:GlobalAttrSpec.xml" xpointer="element(/1/3/2)"/>
+    </GlobalDataflowAttributeDeclarations>
+    
+</UTQLPatternTemplates>
