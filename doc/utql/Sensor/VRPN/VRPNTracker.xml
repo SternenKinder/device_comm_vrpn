@@ -23,10 +23,39 @@
                 <Attribute name="vrpnBodyId" displayName="VRPN body ID" xsi:type="StringAttributeDeclarationType">
                     <Description><p xmlns="http://www.w3.org/1999/xhtml">Body ID of the Trackable</p></Description>
                 </Attribute>
+                <Attribute name="ChannelId" displayName="VRPN pose channel id" min="0" max="65535" default="0" xsi:type="IntAttributeDeclarationType">
+                    <Description><p xmlns="http://www.w3.org/1999/xhtml">id of channel</p></Description>
+                </Attribute>
             </Edge>
         </Output>
         <DataflowConfiguration>
             <UbitrackLib class="VRPNTracker"/>
+        </DataflowConfiguration>
+    </Pattern>
+
+    <Pattern name="VRPNTrackerList" displayName="VRPNTrackerList (Pose)">
+        <Description><p xmlns="http://www.w3.org/1999/xhtml">Logs 3D positions of a Tracking Target received from a VRPN Server</p></Description>
+        <Output>
+            <Node name="VRPN" displayName="VRPN Tracker">
+                <Description><p xmlns="http://www.w3.org/1999/xhtml">VRPN tracker list</p></Description>
+                <Attribute name="hostPort" displayName="host and port" xsi:type="StringAttributeDeclarationType" />
+           </Node>
+            <Node name="Body" displayName="Trackable Body">
+                <Description><p xmlns="http://www.w3.org/1999/xhtml">Trackable Body</p></Description>
+            </Node>
+            <Edge name="VRPNToTarget" displayName="Tracked Transformation" source="VRPN" destination="Body">
+                <Attribute name="type" value="PoseList" xsi:type="EnumAttributeReferenceType"/>
+                <Attribute name="mode" value="push" xsi:type="EnumAttributeReferenceType"/>
+                <Attribute name="vrpnBodyId" displayName="VRPN body ID" xsi:type="StringAttributeDeclarationType">
+                    <Description><p xmlns="http://www.w3.org/1999/xhtml">Body ID of the Trackable</p></Description>
+                </Attribute>
+                <Attribute name="NumSensors" displayName="NumSensors" min="0" max="65535" default="1" xsi:type="IntAttributeDeclarationType">
+                    <Description><p xmlns="http://www.w3.org/1999/xhtml">number of vrpn channels</p></Description>
+                </Attribute>
+            </Edge>
+        </Output>
+        <DataflowConfiguration>
+            <UbitrackLib class="VRPNTrackerList"/>
         </DataflowConfiguration>
     </Pattern>
 
@@ -56,6 +85,7 @@
             <UbitrackLib class="VRPNAnalog"/>
         </DataflowConfiguration>
     </Pattern>
+    
      <Pattern name="VRPNAnalogList" displayName="VRPNAnalogList (distanceList)">
         <Description><p xmlns="http://www.w3.org/1999/xhtml">Logs 3D positions of a Tracking Target received from a VRPN Server</p></Description>
         <Output>

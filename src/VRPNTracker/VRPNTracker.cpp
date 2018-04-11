@@ -86,6 +86,8 @@ public:
 	// construct from configuration
 	VRPNModuleComponentKey( boost::shared_ptr< Graph::UTQLSubgraph > subgraph )
 	: m_body( "" )
+    , m_channelId(0)
+    , m_targetClass(0)
 	{
 		Graph::UTQLSubgraph::EdgePtr config;
 
@@ -101,24 +103,31 @@ public:
 	  if ( m_body == "" )
             UBITRACK_THROW( "Missing or invalid \"vrpnBodyId\" attribute on \"VRPNToTarget\" edge" );
 	  
-	  m_targetClass = 0;
 	  std::string& dfgclass = subgraph->m_DataflowClass;
-	  if (dfgclass == "VRPNTracker"){
+    if (dfgclass == "VRPNTracker")
+    {
 		  m_targetClass = 1;
+      config->getAttributeData("ChannelId", m_channelId);
 	  };
 	  if (dfgclass == "VRPNAnalog"){
 		  m_targetClass = 2;
+      config->getAttributeData("ChannelId", m_channelId);
 	  };
 	  if (dfgclass == "VRPNAnalogList"){
 		  m_targetClass = 3;
 	  };
+    if (dfgclass == "VRPNTrackerList")
+    {
+      m_targetClass = 4;
+    }
 
 	}
 
 	// construct from body number
-	VRPNModuleComponentKey( std::string n, int targetClass )
+	VRPNModuleComponentKey( std::string n, int targetClass, int channelId )
 		: m_body( n )
 		, m_targetClass(targetClass)
+    , m_channelId(channelId)
  	{}
 
 	int getTargetClass() const
@@ -131,21 +140,36 @@ public:
 		return m_body;
 	}
 
+  int getChannelId() const
+  {
+    return m_channelId;
+  }
+
 	// less than operator for map
 	bool operator<( const VRPNModuleComponentKey& b ) const
     {
-		if (m_targetClass == b.m_targetClass) {
+      if (m_targetClass == b.m_targetClass)
+      {
 			int r = m_body.compare(b.m_body);
+        if (r == 0)
+        {
+          return (m_channelId < b.m_channelId);
+        }
+        else
+        {
 			if (r < 0)
 				return true;
 			return false;
 		}
+
+      }
 		return (m_targetClass < b.m_targetClass);
     }
 
 protected:
 	std::string m_body;
 	int m_targetClass;
+  int m_channelId;
 };
 
 
@@ -191,6 +215,7 @@ public:
 			m_queueCondition.notify_all();
 		}
 	
+    m_bStop = false;
 	}
 
 	virtual void stopModule() {
@@ -286,6 +311,8 @@ public:
 	static void	VRPN_CALLBACK handle_pos (void *userdata, const vrpn_TRACKERCB t)
 	{
 		VRPN6DTrackerComponent* vt = (VRPN6DTrackerComponent*)userdata;
+    if (t.sensor != vt->m_channelId) return;
+
 		Measurement::Timestamp ts = Measurement::now();
 		Math::Pose mathPose = Math::Pose(Math::Quaternion(t.quat[0],t.quat[1],t.quat[2],t.quat[3]), Math::Vector<double, 3 >(t.pos));
 		Measurement::Pose result = Measurement::Pose(ts, mathPose);
@@ -298,6 +325,16 @@ public:
 	, m_output("VRPNToTarget", *this)	
 	, tracker(NULL)
 	{
+    Graph::UTQLSubgraph::EdgePtr config;
+    if (pCfg->hasEdge("VRPNToTarget"))
+      config = pCfg->getEdge("VRPNToTarget");
+
+    if (!config)
+    {
+      UBITRACK_THROW("VRPNTracker Pattern has no \"VRPNToTarget\" edge");
+    }
+
+    config->getAttributeData("ChannelId", m_channelId);
 	}
 
 	/** destructor */
@@ -319,7 +356,72 @@ public:
 
 protected:
 	vrpn_Tracker_Remote *tracker;
+  int m_channelId;
 	Dataflow::PushSupplier< Measurement::Pose > m_output;
+
+};
+
+class VRPN6DTrackerListComponent
+  : public VRPNModuleComponent
+{
+
+public:
+  static void	VRPN_CALLBACK handle_pos(void *userdata, const vrpn_TRACKERCB t)
+  {
+    VRPN6DTrackerListComponent* vt = (VRPN6DTrackerListComponent*)userdata;
+    Measurement::Timestamp ts = Measurement::now();
+    Math::Pose mathPose = Math::Pose(Math::Quaternion(t.quat[0], t.quat[1], t.quat[2], t.quat[3]), Math::Vector<double, 3 >(t.pos));
+    if (t.sensor < vt->m_PoseList.size())
+    {
+      vt->m_PoseList[t.sensor] = mathPose;
+    }
+    Measurement::PoseList poseList(ts, vt->m_PoseList);
+    vt->m_output.send(poseList);
+  }
+
+  /** constructor */
+  VRPN6DTrackerListComponent(const std::string& sName, boost::shared_ptr< Graph::UTQLSubgraph > pCfg, const VRPNModuleComponentKey& componentKey, VRPNModule* pModule) :
+    VRPNModuleComponent(sName, pCfg, componentKey, pModule)
+    , m_output("VRPNToTarget", *this)
+    , m_numSensors(1)
+    , tracker(NULL)
+  {
+    Graph::UTQLSubgraph::EdgePtr config;
+    if (pCfg->hasEdge("VRPNToTarget"))
+      config = pCfg->getEdge("VRPNToTarget");
+
+    if (!config)
+    {
+      UBITRACK_THROW("VRPNTracker Pattern has no \"VRPNToTarget\" edge");
+    }
+
+    config->getAttributeData("NumSensors", m_numSensors);
+
+    m_PoseList.resize(m_numSensors);
+  }
+
+  /** destructor */
+  ~VRPN6DTrackerListComponent() {};
+
+
+  virtual bool init(vrpn_Connection* conn) {
+    LOG4CPP_INFO(logger, "VRPNTracker connect Tracker: " << m_componentKey.getBody());
+    tracker = new vrpn_Tracker_Remote(m_componentKey.getBody().c_str(), conn);
+    tracker->register_change_handler((void *)this, &handle_pos);
+    return true;
+  }
+
+  virtual bool exit(vrpn_Connection* conn) {
+    LOG4CPP_INFO(logger, "VRPNTracker disconnect Tracker: " << m_componentKey.getBody());
+    tracker->unregister_change_handler((void *)this, &handle_pos);
+    return true;
+  }
+
+protected:
+  vrpn_Tracker_Remote *tracker;
+  int m_numSensors;
+  std::vector<Math::Pose> m_PoseList;
+  Dataflow::PushSupplier< Measurement::PoseList > m_output;
 
 };
 
@@ -430,7 +532,6 @@ public:
 
 protected:
 	vrpn_Analog_Remote *tracker;
-	int m_channelId;
 	Dataflow::PushSupplier< Measurement::DistanceList > m_output;
 
 };
@@ -502,7 +603,9 @@ void VRPNModule::myDestroyTracker( boost::shared_ptr<VRPNModuleComponent> c ) {
 	const ComponentKey& key, ModuleClass* pModule){
 	if (type == "VRPNTracker"){
 		return boost::shared_ptr<VRPNModuleComponent>(new VRPN6DTrackerComponent(name, subgraph, key, pModule));
-
+	}
+  else if (type == "VRPNTrackerList"){
+    return boost::shared_ptr<VRPNModuleComponent>(new VRPN6DTrackerListComponent(name, subgraph, key, pModule));
 	}
 	else if (type == "VRPNAnalog"){
 		return boost::shared_ptr<VRPNModuleComponent>(new VRPNAnalogComponent(name, subgraph, key, pModule));
@@ -516,8 +619,6 @@ void VRPNModule::myDestroyTracker( boost::shared_ptr<VRPNModuleComponent> c ) {
 } } // namespace Ubitrack::Driver
 
 UBITRACK_REGISTER_COMPONENT( Dataflow::ComponentFactory* const cf ) {
-	cf->registerModule< Ubitrack::Drivers::VRPNModule > ( "VRPNTracker" );
-	cf->registerModule< Ubitrack::Drivers::VRPNModule >("VRPNAnalog");
-	cf->registerModule< Ubitrack::Drivers::VRPNModule >("VRPNAnalogList");
-
+  std::vector<std::string> vrpnComponents = { "VRPNTracker", "VRPNTrackerList", "VRPNAnalog", "VRPNAnalogList" };
+  cf->registerModule< Ubitrack::Drivers::VRPNModule >(vrpnComponents);
 }
